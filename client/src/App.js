@@ -67,7 +67,7 @@ function App() {
     getMedia();
   }, []);
 
-  const createPeerConnection = async (isCaller, offer = null) => {
+  const createPeerConnection = React.useCallback(async (isCaller, offer = null) => {
     peerConnection.current = new RTCPeerConnection(config);
 
     peerConnection.current.onicecandidate = (event) => {
