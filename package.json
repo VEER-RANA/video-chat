@@ -2,11 +2,8 @@
   "dependencies": {
     "socket.io-client": "^4.8.1"
   },
-  {
   "scripts": {
     "build": "cd client && npm install && npm run build",
     "start": "cd server && npm install && node index.js"
   }
-}
-
 }
