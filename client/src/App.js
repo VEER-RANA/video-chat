@@ -2,87 +2,84 @@ import React, { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import './App.css'; // Optional external CSS
 
-
-
 function App() {
-  const socket = io('http://localhost:5000');
+  const socket = useRef(null);
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  // const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnection = useRef(null);
-  // const localStream = useRef(null);
+  const localVideoRef = useRef(null);
+  const localStream = useRef(null);
   const [showChat, setShowChat] = useState(false);
-
   const [roomId, setRoomId] = useState('');
   const [joined, setJoined] = useState(false);
 
   const config = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
-    ]
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
   };
 
-  const localVideoRef = useRef(null);
-const localStream = useRef(null);
+  // Initialize socket connection once
+  useEffect(() => {
+    socket.current = io('http://localhost:5000');
 
-useEffect(() => {
-  const getMedia = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localStream.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
+    // Socket event listeners for signaling
+    socket.current.on('user-joined', async () => {
+      await createPeerConnection(true);
+    });
+
+    socket.current.on('offer', async ({ offer }) => {
+      await createPeerConnection(false, offer);
+    });
+
+    socket.current.on('answer', async ({ answer }) => {
+      await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socket.current.on('ice-candidate', async ({ candidate }) => {
+      try {
+        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error('Error adding ICE candidate', e);
       }
-    } catch (err) {
-      console.error("Media error:", err);
-      alert("Please allow camera/mic to use the app.");
-    }
-  };
+    });
 
-  getMedia();
-}, []);
+    return () => {
+      if (socket.current) socket.current.disconnect();
+    };
+  }, []);
 
+  useEffect(() => {
+    const getMedia = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStream.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.error("Media error:", err);
+        alert("Please allow camera/mic to use the app.");
+      }
+    };
 
-  // useEffect(() => {
-  //   socket.on('user-joined', async () => {
-  //     await createPeerConnection(true);
-  //   });
-
-  //   socket.on('offer', async ({ offer }) => {
-  //     await createPeerConnection(false, offer);
-  //   });
-
-  //   socket.on('answer', async ({ answer }) => {
-  //     await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-  //   });
-
-  //   socket.on('ice-candidate', async ({ candidate }) => {
-  //     try {
-  //       await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-  //     } catch (e) {
-  //       console.error('Error adding ICE candidate', e);
-  //     }
-  //   });
-
-  //   return () => {
-  //     socket.disconnect();
-  //   };
-  // }, [roomId]);
+    getMedia();
+  }, []);
 
   const createPeerConnection = async (isCaller, offer = null) => {
     peerConnection.current = new RTCPeerConnection(config);
 
     peerConnection.current.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit('ice-candidate', { candidate: event.candidate, roomId });
+        socket.current.emit('ice-candidate', { candidate: event.candidate, roomId });
       }
     };
 
     peerConnection.current.ontrack = (event) => {
-      remoteVideoRef.current.srcObject = event.streams[0];
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
     };
 
     localStream.current.getTracks().forEach(track => {
@@ -90,21 +87,21 @@ useEffect(() => {
     });
 
     if (isCaller) {
-      const offer = await peerConnection.current.createOffer();
-      await peerConnection.current.setLocalDescription(offer);
-      socket.emit('offer', { offer, roomId });
+      const offerDesc = await peerConnection.current.createOffer();
+      await peerConnection.current.setLocalDescription(offerDesc);
+      socket.current.emit('offer', { offer: offerDesc, roomId });
     } else {
       await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peerConnection.current.createAnswer();
       await peerConnection.current.setLocalDescription(answer);
-      socket.emit('answer', { answer, roomId });
+      socket.current.emit('answer', { answer, roomId });
     }
   };
 
   const startLocalVideo = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideoRef.current.srcObject = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       localStream.current = stream;
     } catch (error) {
       console.error('Error starting video:', error);
@@ -114,7 +111,7 @@ useEffect(() => {
   const handleJoinRoom = async () => {
     if (!roomId.trim()) return;
     await startLocalVideo();
-    socket.emit('join-room', roomId);
+    socket.current.emit('join-room', roomId);
     setJoined(true);
   };
 
@@ -147,7 +144,7 @@ useEffect(() => {
 
   const sendMessage = () => {
     if (newMessage.trim()) {
-      socket.emit('chat-message', { message: newMessage, roomId });
+      socket.current.emit('chat-message', { message: newMessage, roomId });
       setMessages(prev => [...prev, { type: 'local', text: newMessage }]);
       setNewMessage('');
     }
@@ -156,7 +153,6 @@ useEffect(() => {
   const deleteMessage = (indexToDelete) => {
     setMessages(prev => prev.filter((_, i) => i !== indexToDelete));
   };
-
 
   return (
     <div className="app-container">
@@ -232,7 +228,6 @@ useEffect(() => {
                   </button>
                 </div>
               ))}
-
             </div>
             <div className="chat-input">
               <input
@@ -247,10 +242,8 @@ useEffect(() => {
           </div>
         </div>
       )}
-
     </div>
   );
-
 }
 
 export default App;
