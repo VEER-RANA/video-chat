@@ -1,11 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback} from 'react';
-import io from 'socket.io-client';
-import './App.css'; // Optional external CSS
-
-function App() {
-  const socket = useRef(null);
-  const [micOn, setMicOn] = useState(true);
-  const [videoOn, setVideoOn] = useState(true);import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 
