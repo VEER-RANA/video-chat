@@ -50,7 +50,7 @@ function App() {
       await peerConnection.current.setLocalDescription(answer);
       socket.current.emit('answer', { answer, roomId });
     }
-  }, [roomId]);
+  }, [roomId, config]);
 
   useEffect(() => {
     socket.current = io('http://localhost:5000');
