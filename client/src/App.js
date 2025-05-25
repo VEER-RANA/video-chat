@@ -22,6 +22,10 @@ function App() {
 
   // ✅ FIX: Include proper dependencies
   const createPeerConnection = useCallback(async (isCaller, offer = null) => {
+    const config = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    };
+
     peerConnection.current = new RTCPeerConnection(config);
 
     peerConnection.current.onicecandidate = (event) => {
