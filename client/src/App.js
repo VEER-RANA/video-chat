@@ -51,7 +51,7 @@ function App() {
       await peerConnection.current.setLocalDescription(answer);
       socket.current.emit('answer', { answer, roomId });
     }
-  }, [roomId, config]);
+  }, [roomId]);
 
   useEffect(() => {
     socket.current = io();
