@@ -16,12 +16,12 @@ function App() {
   const [roomId, setRoomId] = useState('');
   const [joined, setJoined] = useState(false);
 
-  const config = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-  };
 
   // ✅ FIX: Include proper dependencies
   const createPeerConnection = useCallback(async (isCaller, offer = null) => {
+  const config = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+  };
 
     peerConnection.current = new RTCPeerConnection(config);
 
@@ -54,7 +54,7 @@ function App() {
   }, [roomId, config]);
 
   useEffect(() => {
-    socket.current = io('http://localhost:5000');
+    socket.current = io();
 
     socket.current.on('user-joined', async () => {
       await createPeerConnection(true);
