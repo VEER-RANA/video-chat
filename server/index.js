@@ -5,6 +5,7 @@ const path = require('path');
 const cors = require('cors');
 
 const app = express();
+app.use(cors()); // ✅ Apply CORS middleware
 app.use(express.static(path.join(__dirname, '../client/build')));
 
 app.get('*', (req, res) => {
@@ -42,9 +43,9 @@ io.on('connection', socket => {
   socket.on('chat-message', ({ message, roomId }) => {
     socket.to(roomId).emit('chat-message', { message });
   });
-  
 });
 
-server.listen(5000, () => {
-  console.log('Signaling server running on http://localhost:5000');
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Signaling server running on port ${PORT}`);
 });
