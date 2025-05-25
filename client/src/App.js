@@ -20,9 +20,6 @@ function App() {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
   };
 
-    const config = {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-    };
   // ✅ FIX: Include proper dependencies
   const createPeerConnection = useCallback(async (isCaller, offer = null) => {
 
